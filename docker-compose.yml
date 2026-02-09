@@ -1,4 +1,5 @@
-version: "3.8"
+# Media Compressor - Docker Compose Configuration
+# Deployed at: https://imagezip.tmusml.cloud
 
 services:
   app:
