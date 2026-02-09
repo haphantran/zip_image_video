@@ -430,7 +430,7 @@
                 Images: JPG, PNG, HEIC, WebP, GIF • Videos: MP4, MOV, AVI, MKV, WebM
             </div>
             <input type="file" class="file-input" id="fileInput" 
-                   accept="image/*,video/*,.heic,.heif" multiple>
+                   accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.mp4,.mov,.avi,.mkv,.webm" multiple>
         </div>
         
         <div class="options">
@@ -554,8 +554,14 @@
         }
         
         async function uploadFile(file) {
+            // Validate file before upload
+            if (!file || !file.name) {
+                alert('Invalid file selected. Please try again.');
+                return;
+            }
+            
             const formData = new FormData();
-            formData.append('file', file);
+            formData.append('file', file, file.name);
             formData.append('preset', presetSelect.value);
             formData.append('image_format', imageFormatSelect.value);
             
@@ -575,7 +581,13 @@
                     alert(data.detail || 'Upload failed');
                 }
             } catch (error) {
-                alert('Upload failed: ' + error.message);
+                console.error('Upload error:', error);
+                // iOS Safari specific handling
+                if (error.message && error.message.includes('pattern')) {
+                    alert('Upload failed: iOS file format issue. Try selecting the file from "Files" app instead of Photo Library, or use "Choose Photo" and select a smaller size option.');
+                } else {
+                    alert('Upload failed: ' + error.message);
+                }
             }
         }
         
