@@ -104,10 +104,12 @@ async def upload_file(
     preset: str = Form("facebook"),
     image_format: str = Form("jpg"),
 ):
-    if not file.filename:
+    filename = file.filename or ""
+    if not filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
-    file_ext = Path(file.filename).suffix.lower()
+    filename = str(filename)
+    file_ext = Path(filename).suffix.lower() if filename else ""
 
     if file_ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -116,7 +118,7 @@ async def upload_file(
         )
 
     file_id = str(uuid.uuid4())[:8]
-    file_path = settings.upload_dir / f"{file_id}_{file.filename}"
+    file_path = settings.upload_dir / f"{file_id}_{filename}"
 
     content = await file.read()
     if len(content) > settings.max_file_size_mb * 1024 * 1024:
@@ -129,7 +131,7 @@ async def upload_file(
         buffer.write(content)
 
     job = job_manager.create_job(
-        original_filename=file.filename,
+        original_filename=filename,
         original_path=file_path,
         preset=preset,
         image_format=image_format,
