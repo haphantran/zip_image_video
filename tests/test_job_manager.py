@@ -2,10 +2,8 @@
 Unit tests for JobManager - Job CRUD operations and state transitions.
 """
 
-import pytest
 from pathlib import Path
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
 
 from app.services.job_manager import JobManager, CompressionJob, JobStatus
 

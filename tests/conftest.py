@@ -11,7 +11,7 @@ from typing import Generator
 import pytest
 from PIL import Image
 
-from app.services.job_manager import JobManager, JobStatus
+from app.services.job_manager import JobManager
 from app.config import settings
 
 

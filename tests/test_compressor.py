@@ -13,7 +13,6 @@ from app.services.ffmpeg_compressor import (
     is_heic,
     compress_image,
     compress_video,
-    compress_gif,
     compress_file,
     check_ffmpeg_available,
     check_heic_support,

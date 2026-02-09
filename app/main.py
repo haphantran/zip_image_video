@@ -2,7 +2,6 @@ import uuid
 import io
 import zipfile
 from pathlib import Path
-from typing import Optional
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse

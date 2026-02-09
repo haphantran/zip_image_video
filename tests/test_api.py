@@ -5,13 +5,12 @@ Unit tests for FastAPI endpoints - API integration tests.
 import io
 import pytest
 from pathlib import Path
-from unittest.mock import patch, AsyncMock
 
 from httpx import AsyncClient, ASGITransport
 from PIL import Image
 
 from app.main import app
-from app.services.job_manager import job_manager, JobStatus
+from app.services.job_manager import job_manager
 
 
 @pytest.fixture
@@ -265,8 +264,7 @@ class TestDownloadEndpoint:
     @pytest.mark.asyncio
     async def test_download_pending_job(self, client: AsyncClient, mock_settings):
         """Should return 400 when job is still pending (not completed)."""
-        from app.services.job_manager import job_manager, JobStatus
-        from pathlib import Path
+        from app.services.job_manager import job_manager
         import tempfile
 
         # Create a temporary test file

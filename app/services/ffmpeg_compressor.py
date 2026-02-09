@@ -345,7 +345,7 @@ def check_ffmpeg_available() -> bool:
 def check_heic_support() -> bool:
     """Check if HEIC support is available via pillow-heif"""
     try:
-        import pillow_heif
+        import pillow_heif  # noqa: F401
 
         return True
     except ImportError:
