@@ -1,0 +1,53 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.cover
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Data (will be mounted as volumes)
+app/uploads/*
+app/downloads/*
+data/
+
+# Logs
+*.log
+server.log
+
+# Misc
+.DS_Store
+*.md
+!README.md
+
+# Ruff cache
+.ruff_cache/
+
+# Test files
+tests/
+requirements-dev.txt

@@ -1,0 +1,22 @@
+[Unit]
+Description=Media Compressor Service
+After=network.target
+
+[Service]
+Type=simple
+User=mediacomp
+Group=mediacomp
+WorkingDirectory=/opt/media-compressor
+Environment="PATH=/opt/media-compressor/venv/bin:/usr/bin"
+ExecStart=/opt/media-compressor/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/media-compressor/app/uploads /opt/media-compressor/app/downloads
+
+[Install]
+WantedBy=multi-user.target
