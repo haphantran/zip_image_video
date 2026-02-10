@@ -1,6 +1,6 @@
 import uuid
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -16,6 +16,7 @@ class JobStatus(Enum):
 @dataclass
 class CompressionJob:
     id: str
+    session_id: str
     original_filename: str
     original_path: Path
     preset: str = "facebook"
@@ -64,6 +65,7 @@ class JobManager:
 
     def create_job(
         self,
+        session_id: str,
         original_filename: str,
         original_path: Path,
         preset: str = "facebook",
@@ -73,6 +75,7 @@ class JobManager:
 
         job = CompressionJob(
             id=job_id,
+            session_id=session_id,
             original_filename=original_filename,
             original_path=original_path,
             preset=preset,
@@ -83,11 +86,19 @@ class JobManager:
         self.jobs[job_id] = job
         return job
 
-    def get_job(self, job_id: str) -> Optional[CompressionJob]:
-        return self.jobs.get(job_id)
+    def get_job(
+        self, job_id: str, session_id: Optional[str] = None
+    ) -> Optional[CompressionJob]:
+        job = self.jobs.get(job_id)
+        if job and session_id and job.session_id != session_id:
+            return None
+        return job
 
-    def delete_job(self, job_id: str) -> bool:
-        if job_id in self.jobs:
+    def delete_job(self, job_id: str, session_id: Optional[str] = None) -> bool:
+        job = self.jobs.get(job_id)
+        if job:
+            if session_id and job.session_id != session_id:
+                return False
             del self.jobs[job_id]
             return True
         return False
@@ -114,32 +125,64 @@ class JobManager:
             if error_message:
                 job.error_message = error_message
 
-    def list_jobs(self) -> list:
+    def list_jobs(self, session_id: Optional[str] = None) -> List[dict]:
+        jobs = self.jobs.values()
+        if session_id:
+            jobs = [j for j in jobs if j.session_id == session_id]
         return [
             job.to_dict()
-            for job in sorted(
-                self.jobs.values(), key=lambda x: x.created_at, reverse=True
-            )
+            for job in sorted(jobs, key=lambda x: x.created_at, reverse=True)
         ]
 
-    def cleanup_old_jobs(self, max_age_hours: int = 24):
+    def cleanup_old_jobs(self, max_age_minutes: int = 30) -> int:
         now = datetime.now()
         jobs_to_remove = []
+        cleaned_count = 0
 
         for job_id, job in self.jobs.items():
-            age = (now - job.created_at).total_seconds() / 3600
-            if age > max_age_hours:
-                if job.original_path.exists():
-                    job.original_path.unlink()
+            age_minutes = (now - job.created_at).total_seconds() / 60
+            if age_minutes > max_age_minutes:
+                if job.original_path and job.original_path.exists():
+                    try:
+                        job.original_path.unlink()
+                    except Exception:
+                        pass
                 if job.compressed_path and job.compressed_path.exists():
-                    job.compressed_path.unlink()
+                    try:
+                        job.compressed_path.unlink()
+                    except Exception:
+                        pass
                 jobs_to_remove.append(job_id)
+                cleaned_count += 1
 
         for job_id in jobs_to_remove:
             del self.jobs[job_id]
 
-    def clear_all(self):
-        self.jobs.clear()
+        return cleaned_count
+
+    def clear_all(self, session_id: Optional[str] = None) -> int:
+        if session_id:
+            jobs_to_remove = [
+                jid for jid, j in self.jobs.items() if j.session_id == session_id
+            ]
+            for job_id in jobs_to_remove:
+                job = self.jobs[job_id]
+                if job.original_path and job.original_path.exists():
+                    try:
+                        job.original_path.unlink()
+                    except Exception:
+                        pass
+                if job.compressed_path and job.compressed_path.exists():
+                    try:
+                        job.compressed_path.unlink()
+                    except Exception:
+                        pass
+                del self.jobs[job_id]
+            return len(jobs_to_remove)
+        else:
+            count = len(self.jobs)
+            self.jobs.clear()
+            return count
 
 
 job_manager = JobManager()
