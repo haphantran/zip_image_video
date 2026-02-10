@@ -19,14 +19,23 @@ def anyio_backend():
     return "asyncio"
 
 
+# Consistent test session ID (must be 32 chars for validation)
+TEST_SESSION_ID = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"
+
+
 @pytest.fixture
 async def client(mock_settings):
-    """Create async test client with mocked settings."""
+    """Create async test client with mocked settings and session cookie."""
     # Clear any existing jobs
     job_manager.clear_all()
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    # Include session cookie so all requests use the same session
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        cookies={"session_id": TEST_SESSION_ID},
+    ) as ac:
         yield ac
 
     # Cleanup after test
@@ -277,6 +286,7 @@ class TestDownloadEndpoint:
 
         # Manually create a job in PENDING state (bypassing background processing)
         job = job_manager.create_job(
+            session_id=TEST_SESSION_ID,
             original_filename="test.jpg",
             original_path=tmp_path,
             preset="facebook",

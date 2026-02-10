@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 
 from app.services.job_manager import JobManager, CompressionJob, JobStatus
 
+TEST_SESSION_ID = "test_session_12345678901234567890"
+
 
 class TestJobCreation:
     """Tests for job creation."""
@@ -16,6 +18,7 @@ class TestJobCreation:
     ):
         """Create job should return a CompressionJob instance."""
         job = job_manager.create_job(
+            session_id=TEST_SESSION_ID,
             original_filename="test.jpg",
             original_path=sample_jpg,
             preset="facebook",
@@ -32,8 +35,8 @@ class TestJobCreation:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """Each job should have a unique 8-character ID."""
-        job1 = job_manager.create_job("test1.jpg", sample_jpg)
-        job2 = job_manager.create_job("test2.jpg", sample_jpg)
+        job1 = job_manager.create_job(TEST_SESSION_ID, "test1.jpg", sample_jpg)
+        job2 = job_manager.create_job(TEST_SESSION_ID, "test2.jpg", sample_jpg)
 
         assert job1.id != job2.id
         assert len(job1.id) == 8
@@ -43,14 +46,14 @@ class TestJobCreation:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """New jobs should start with PENDING status."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         assert job.status == JobStatus.PENDING
 
     def test_create_job_records_original_size(
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """Job should record the original file size."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         assert job.original_size == sample_jpg.stat().st_size
         assert job.original_size > 0
 
@@ -59,19 +62,19 @@ class TestJobCreation:
     ):
         """Job should have a creation timestamp."""
         before = datetime.now()
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         after = datetime.now()
 
         assert before <= job.created_at <= after
 
     def test_create_job_default_preset(self, job_manager: JobManager, sample_jpg: Path):
         """Default preset should be 'facebook'."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         assert job.preset == "facebook"
 
     def test_create_job_default_format(self, job_manager: JobManager, sample_jpg: Path):
         """Default image format should be 'jpg'."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         assert job.image_format == "jpg"
 
 
@@ -80,7 +83,7 @@ class TestJobRetrieval:
 
     def test_get_job_existing(self, job_manager: JobManager, sample_jpg: Path):
         """Get job should return existing job."""
-        created_job = job_manager.create_job("test.jpg", sample_jpg)
+        created_job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         retrieved_job = job_manager.get_job(created_job.id)
 
         assert retrieved_job is not None
@@ -98,7 +101,7 @@ class TestJobRetrieval:
 
     def test_list_jobs_returns_dicts(self, job_manager: JobManager, sample_jpg: Path):
         """List jobs should return list of dictionaries."""
-        job_manager.create_job("test.jpg", sample_jpg)
+        job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         result = job_manager.list_jobs()
 
         assert len(result) == 1
@@ -108,9 +111,9 @@ class TestJobRetrieval:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """List jobs should be sorted by created_at descending (newest first)."""
-        job1 = job_manager.create_job("first.jpg", sample_jpg)
-        job2 = job_manager.create_job("second.jpg", sample_jpg)
-        job3 = job_manager.create_job("third.jpg", sample_jpg)
+        job1 = job_manager.create_job(TEST_SESSION_ID, "first.jpg", sample_jpg)
+        job2 = job_manager.create_job(TEST_SESSION_ID, "second.jpg", sample_jpg)
+        job3 = job_manager.create_job(TEST_SESSION_ID, "third.jpg", sample_jpg)
 
         result = job_manager.list_jobs()
 
@@ -125,7 +128,7 @@ class TestJobUpdate:
 
     def test_update_job_status(self, job_manager: JobManager, sample_jpg: Path):
         """Update job should change status."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         job_manager.update_job(job.id, status=JobStatus.PROCESSING)
 
         updated = job_manager.get_job(job.id)
@@ -133,7 +136,7 @@ class TestJobUpdate:
 
     def test_update_job_progress(self, job_manager: JobManager, sample_jpg: Path):
         """Update job should change progress."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         job_manager.update_job(job.id, progress=50)
 
         updated = job_manager.get_job(job.id)
@@ -143,7 +146,7 @@ class TestJobUpdate:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """Setting COMPLETED status should set completed_at."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         assert job.completed_at is None
 
         job_manager.update_job(job.id, status=JobStatus.COMPLETED)
@@ -156,7 +159,7 @@ class TestJobUpdate:
         self, job_manager: JobManager, sample_jpg: Path, sample_png: Path
     ):
         """Update compressed_path should also update compressed_size."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         job_manager.update_job(job.id, compressed_path=sample_png)
 
         updated = job_manager.get_job(job.id)
@@ -165,7 +168,7 @@ class TestJobUpdate:
 
     def test_update_job_error_message(self, job_manager: JobManager, sample_jpg: Path):
         """Update job should set error message."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         job_manager.update_job(job.id, error_message="Compression failed")
 
         updated = job_manager.get_job(job.id)
@@ -182,7 +185,7 @@ class TestJobDeletion:
 
     def test_delete_job_existing(self, job_manager: JobManager, sample_jpg: Path):
         """Delete job should remove existing job and return True."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         result = job_manager.delete_job(job.id)
 
         assert result is True
@@ -195,9 +198,9 @@ class TestJobDeletion:
 
     def test_clear_all(self, job_manager: JobManager, sample_jpg: Path):
         """Clear all should remove all jobs."""
-        job_manager.create_job("test1.jpg", sample_jpg)
-        job_manager.create_job("test2.jpg", sample_jpg)
-        job_manager.create_job("test3.jpg", sample_jpg)
+        job_manager.create_job(TEST_SESSION_ID, "test1.jpg", sample_jpg)
+        job_manager.create_job(TEST_SESSION_ID, "test2.jpg", sample_jpg)
+        job_manager.create_job(TEST_SESSION_ID, "test3.jpg", sample_jpg)
 
         job_manager.clear_all()
 
@@ -211,7 +214,7 @@ class TestJobToDict:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """to_dict should include all required fields."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         result = job.to_dict()
 
         required_fields = [
@@ -236,7 +239,7 @@ class TestJobToDict:
 
     def test_to_dict_status_is_string(self, job_manager: JobManager, sample_jpg: Path):
         """Status in to_dict should be string, not enum."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         result = job.to_dict()
 
         assert isinstance(result["status"], str)
@@ -246,7 +249,7 @@ class TestJobToDict:
         self, job_manager: JobManager, sample_jpg: Path, sample_png: Path
     ):
         """download_ready should be True only when COMPLETED with compressed_path."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         job_manager.update_job(
             job.id, status=JobStatus.COMPLETED, compressed_path=sample_png
         )
@@ -261,7 +264,7 @@ class TestJobToDict:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """download_ready should be False for pending jobs."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         result = job.to_dict()
 
         assert result["download_ready"] is False
@@ -274,7 +277,7 @@ class TestCompressionRatio:
         self, job_manager: JobManager, sample_jpg: Path, sample_small_jpg: Path
     ):
         """Compression ratio should be calculated when both sizes available."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         job_manager.update_job(job.id, compressed_path=sample_small_jpg)
 
         updated = job_manager.get_job(job.id)
@@ -287,7 +290,7 @@ class TestCompressionRatio:
         self, job_manager: JobManager, sample_jpg: Path
     ):
         """Compression ratio should be None when no compressed size."""
-        job = job_manager.create_job("test.jpg", sample_jpg)
+        job = job_manager.create_job(TEST_SESSION_ID, "test.jpg", sample_jpg)
         result = job.to_dict()
 
         assert result["compression_ratio"] is None
@@ -299,26 +302,24 @@ class TestCleanupOldJobs:
     def test_cleanup_old_jobs_removes_expired(
         self, job_manager: JobManager, temp_dir: Path
     ):
-        """Cleanup should remove jobs older than max_age_hours."""
-        # Create a file in temp dir
+        """Cleanup should remove jobs older than max_age_minutes."""
         test_file = temp_dir / "old.jpg"
         test_file.write_bytes(b"test data")
 
-        job = job_manager.create_job("old.jpg", test_file)
+        job = job_manager.create_job(TEST_SESSION_ID, "old.jpg", test_file)
 
-        # Manually set created_at to 25 hours ago
-        job.created_at = datetime.now() - timedelta(hours=25)
+        job.created_at = datetime.now() - timedelta(minutes=35)
 
-        job_manager.cleanup_old_jobs(max_age_hours=24)
+        job_manager.cleanup_old_jobs(max_age_minutes=30)
 
         assert job_manager.get_job(job.id) is None
 
     def test_cleanup_old_jobs_keeps_recent(
         self, job_manager: JobManager, sample_jpg: Path
     ):
-        """Cleanup should keep jobs newer than max_age_hours."""
-        job = job_manager.create_job("recent.jpg", sample_jpg)
+        """Cleanup should keep jobs newer than max_age_minutes."""
+        job = job_manager.create_job(TEST_SESSION_ID, "recent.jpg", sample_jpg)
 
-        job_manager.cleanup_old_jobs(max_age_hours=24)
+        job_manager.cleanup_old_jobs(max_age_minutes=30)
 
         assert job_manager.get_job(job.id) is not None

@@ -100,3 +100,9 @@ def mock_settings(mock_upload_dir: Path, mock_download_dir: Path):
         "upload_dir": mock_upload_dir,
         "download_dir": mock_download_dir,
     }
+
+
+@pytest.fixture
+def test_session_id() -> str:
+    """Provide a consistent session ID for tests."""
+    return "test_session_12345678901234567890"
